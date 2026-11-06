@@ -62,7 +62,7 @@ header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
 .pin.sel span{outline:3px solid var(--accent)}
 .pin .lbl{position:absolute;left:16px;top:-2px;transform:none;white-space:nowrap;font-size:11px;font-weight:700;background:var(--panel);border-radius:6px;padding:1px 5px;box-shadow:0 1px 3px rgba(0,0,0,.2);width:auto;height:auto;border:0}
 .you{position:absolute;width:14px;height:14px;border-radius:50%;background:#2563eb;border:3px solid var(--panel);box-shadow:0 0 0 6px rgba(37,99,235,.2);transform:translate(-50%,-50%)}
-.chiprow{display:flex;gap:6px;overflow-x:auto;padding:2px 12px 8px;scrollbar-width:none;align-items:center}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px;padding:2px 12px 8px;align-items:center}
 .chiprow::-webkit-scrollbar{display:none}
 .rowlbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);flex:none;width:58px}
 .chip{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 11px;font-size:13px;white-space:nowrap}
@@ -139,7 +139,7 @@ textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var
 .sectlbl{margin:4px 12px 2px;font-size:12px;font-weight:700;color:var(--muted)}
 .why button.q{display:inline;border:0;background:none;padding:0;color:inherit;text-align:left;font:inherit}
 .why button.q span{color:var(--accent);font-weight:700}
-.addrow{display:flex;gap:6px;overflow-x:auto;padding:0 12px 8px;scrollbar-width:none;align-items:center}
+.addrow{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 8px;align-items:center}
 .addrow::-webkit-scrollbar{display:none}
 .chip.add{border-style:dashed}
 .rationale{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}

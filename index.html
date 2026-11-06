@@ -203,7 +203,7 @@ const WHY={
   entry:["Describe it, or tap it",[
     "<b>Match with the real world:</b> the search bar invites a full request, the way people describe a place to a friend. Survey respondents searched Google, Reddit and ChatGPT for this because Maps doesn't take that kind of request.",
     "<b>Flexibility and efficiency:</b> typing suits a detailed request, the mic suits walking, and the chips suit quick browsing. All three lead to the same results.",
-    "<b>Recognition rather than recall:</b> the labeled chip rows show which qualities Maps understands, so nobody has to guess keywords."]],
+    "<b>Recognition rather than recall:</b> chips show which qualities Maps understands, so nobody has to guess keywords. Only the most common ones show at first; More opens the full Vibe and Features lists, keeping the map visible (first-round participants wanted more map space)."]],
   results:["See what Maps understood",[
     "<b>Visibility of system status:</b> the \"Understood as\" pills show exactly how Maps read the request, which narrows the gulf of evaluation before the user trusts a result.",
     "<b>Error recovery:</b> a misread costs one tap on ×, not retyping the whole request. Dashed chips add a quality the same way; only two show until you tap More, so they don't crowd the map.",
@@ -241,6 +241,7 @@ $("#copyRes").onclick=async()=>{const txt=resultText(),ta=$("#resText");ta.value
 function toast(msg){const t=document.createElement("div");t.className="toast";t.textContent=msg;view.appendChild(t);setTimeout(()=>t.remove(),1800)}
 function stars(r){return '<span class="stars">★</span> '+r.toFixed(1)}
 function photoTile(tag){const [a,b,l]=PHOTO[tag];return `<div class="photo" style="background:linear-gradient(135deg,${a},${b})">${esc(l)}</div>`}
+const POPULAR=["cozy","quiet","books","outdoor"];
 const TAGS={
   cozy:{label:"Cozy",kind:"vibe",words:["cozy","cosy","warm","snug","comfy"]},
   lively:{label:"Lively",kind:"vibe",words:["lively","upbeat","buzzy","fun","energetic"]},
@@ -308,11 +309,12 @@ function renderEntry(){
   view.innerHTML=`<div class="searchbar">${SEARCH_ICON}
       <input id="q" placeholder="Describe what you're looking for" aria-label="Describe what you're looking for" value="${esc(st.q||"")}">
       <button class="iconbtn" id="mic" aria-label="Speak your request">${MIC_ICON}</button></div>
-    <p class="hint">Describe it like you would to a friend, or tap qualities below.</p>
-    <p class="sectlbl">Vibe: how it feels</p><div class="chiprow">${VIBES.map(chip).join("")}</div>
-    <p class="sectlbl">Features: what it has</p><div class="chiprow">${FEATS.map(chip).join("")}</div>
+    ${st.moreEntry?`<p class="sectlbl">Vibe: how it feels</p><div class="chiprow">${VIBES.map(chip).join("")}</div>
+    <p class="sectlbl">Features: what it has</p><div class="chiprow">${FEATS.map(chip).join("")}<button class="chip more" id="moreentry" aria-expanded="true">Less</button></div>`
+    :`<div class="chiprow">${[...new Set([...POPULAR,...st.picked])].map(chip).join("")}<button class="chip more" id="moreentry" aria-expanded="false">More…</button></div>`}
     ${st.picked.length?`<div class="actions" style="padding-top:0"><button class="primary" id="chipgo" style="width:100%">Find coffee shops: ${st.picked.map(t=>TAGS[t].label).join(", ")}</button></div>`:""}
-    ${mapHTML(PLACES,{dim:PLACES.map(p=>p.id),h:st.picked.length?260:300})}`;
+    <div class="mapsheet">${mapHTML(PLACES,{dim:PLACES.map(p=>p.id),h:"100%"})}</div>`;
+  $("#moreentry").onclick=()=>{st.moreEntry=!st.moreEntry;logEvent(st.moreEntry?"Showed all qualities":"Showed fewer qualities");render()};
   const inp=$("#q");
   inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&inp.value.trim())search(inp.value.trim(),"Typed")});
   $("#mic").onclick=()=>{logEvent("Tapped microphone");inp.value="";inp.placeholder="Listening…";let i=0;

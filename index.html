@@ -148,6 +148,14 @@ textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var
 .cardhead{border:0;background:none;padding:0;text-align:left;display:flex;justify-content:space-between;align-items:baseline;gap:8px;width:100%}
 .cardhead h3{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
 body:not(.demo) .dmode{display:none!important}body.demo .pmode{display:none!important}.donemsg{font-weight:700;color:var(--accent);margin:8px 0}
+.mlbl{position:absolute;font-size:9px;line-height:1;color:var(--muted);white-space:nowrap;pointer-events:none;text-shadow:0 0 2px var(--map-land),0 0 3px var(--map-land);letter-spacing:.02em}
+.mlbl.v{transform:rotate(90deg);transform-origin:left top}
+.mlbl.park{text-align:center;font-style:italic;color:#3f7a4a}
+.mctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:8px;pointer-events:none;z-index:2}
+.mbtn{width:34px;height:34px;border-radius:50%;background:var(--panel);color:var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.mscale{position:absolute;left:10px;top:10px;font-size:9px;color:var(--ink);display:flex;align-items:center;gap:4px;pointer-events:none;text-shadow:0 0 2px var(--map-land)}
+.mscale span{display:inline-block;width:36px;height:5px;border:1.5px solid var(--ink);border-top:0}
+@media (prefers-color-scheme:dark){.mlbl.park{color:#7fbf8c}}
 </style>
 
 <div class="wrap">
@@ -278,6 +286,18 @@ const PLACES=[
   {id:"nightowl",name:"Night Owl Coffee",addr:"233 E 13th St",dist:1.0,rating:4.0,n:267,price:"$",x:30,y:14,tags:["lively","laptop","late","food"],c:{lively:12,laptop:18,late:31,food:8}}
 ];
 const P=Object.fromEntries(PLACES.map(p=>[p.id,p]));
+const MAPDECOR=`<div class="mlbl" style="left:12%;top:28.6%">E 7th St</div>
+  <div class="mlbl" style="left:12%;top:60.6%">E 3rd St</div>
+  <div class="mlbl" style="left:2%;top:44.6%">St Marks Pl</div>
+  <div class="mlbl v" style="left:75.4%;top:6%">Avenue B</div>
+  <div class="mlbl v" style="left:27.4%;top:6%">2nd Ave</div>
+  <div class="mlbl park" style="left:40%;top:80%;width:22%">Tompkins Sq</div>
+  <div class="mctl" aria-hidden="true">
+    <span class="mbtn"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 3l4 9h-8z" fill="#d93025"/><path d="M12 21l-4-9h8z" fill="currentColor" opacity=".55"/></svg></span>
+    <span class="mbtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>
+    <span class="mbtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1a73e8" stroke-width="2"><circle cx="12" cy="12" r="4" fill="#1a73e8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg></span>
+  </div>
+  <div class="mscale" aria-hidden="true"><span></span>500 ft</div>`;
 function mapHTML(places,{dim=[],sel=null,labels=false,h=230}={}){
   const pins=places.map(p=>`<button class="pin ${dim.includes(p.id)?"dim":""} ${sel===p.id?"sel":""}" data-pin="${p.id}" style="left:${p.x}%;top:${p.y}%" aria-label="${esc(p.name)}"><span></span>${labels&&!dim.includes(p.id)?`<span class="lbl">${esc(p.name)}</span>`:""}</button>`).join("");
   return `<div class="map" style="height:${typeof h==="number"?h+"px":h}"><svg class="base" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -287,7 +307,7 @@ function mapHTML(places,{dim=[],sel=null,labels=false,h=230}={}){
     ${[12,28,44,60,76].map(y=>`<rect x="0" y="${y}" width="100" height="2.2" fill="var(--map-road)"/>`).join("")}
     ${[10,26,42,58,74].map(x=>`<rect x="${x}" y="0" width="2.6" height="100" fill="var(--map-road)"/>`).join("")}
     <path d="M0 96 L70 0" stroke="var(--map-road)" stroke-width="2.4"/>
-  </svg><div class="you" style="left:48%;top:46%"></div>${pins}</div>`}
+  </svg>${MAPDECOR}<div class="you" style="left:48%;top:46%"></div>${pins}</div>`}
 
 
 const SEARCH_ICON=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`;

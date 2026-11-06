@@ -139,7 +139,7 @@ textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var
 .sectlbl{margin:4px 12px 2px;font-size:12px;font-weight:700;color:var(--muted)}
 .why button.q{display:inline;border:0;background:none;padding:0;color:inherit;text-align:left;font:inherit}
 .why button.q span{color:var(--accent);font-weight:700}
-.addrow{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 8px;align-items:center}
+.addrow{display:flex;flex-wrap:nowrap;gap:6px;padding:0 12px 8px;align-items:center;overflow:hidden}.addrow.open{flex-wrap:wrap}.chip.more{border-style:solid;font-weight:700}.mapsheet{position:relative;flex:1;min-height:0;overflow:hidden}.mapsheet>.map{position:absolute;inset:0}.rsheet{position:absolute;left:0;right:0;bottom:0;height:46%;background:var(--panel);border-radius:18px 18px 0 0;box-shadow:0 -6px 18px rgba(0,0,0,.18);display:flex;flex-direction:column;transition:height .25s ease}.rsheet.full{height:100%;border-radius:0}.sheethandle{border:0;background:none;color:inherit;font:inherit;padding:6px 14px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;cursor:pointer;border-bottom:1px solid var(--line)}.sheethandle .grab{width:38px;height:4px;border-radius:2px;background:var(--pin-dim)}.sheethandle .cnt{font-size:13px;font-weight:700}
 .addrow::-webkit-scrollbar{display:none}
 .chip.add{border-style:dashed}
 .rationale{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
@@ -194,7 +194,8 @@ const WHY={
     "<b>Recognition rather than recall:</b> the labeled chip rows show which qualities Maps understands, so nobody has to guess keywords."]],
   results:["See what Maps understood",[
     "<b>Visibility of system status:</b> the \"Understood as\" pills show exactly how Maps read the request, which narrows the gulf of evaluation before the user trusts a result.",
-    "<b>Error recovery:</b> a misread costs one tap on ×, not retyping the whole request. Dashed chips add a quality the same way.",
+    "<b>Error recovery:</b> a misread costs one tap on ×, not retyping the whole request. Dashed chips add a quality the same way; only two show until you tap More, so they don't crowd the map.",
+    "<b>Consistency with Google Maps:</b> results sit in a bottom sheet over a full-size map, the same pattern Maps uses today. Participants asked for more map space to judge distance; tapping the sheet expands the list.",
     "<b>Evidence up front:</b> each result shows how many qualities it matches and a quote from a real, named review. In first-round testing, 4 of 8 participants tapped Reviews instead of Directions on design A, and one said they skip AI summaries."]],
   detail:["Why it matched",[
     "<b>Feedback:</b> the \"Matched because\" box ties each quality to a count of reviews, so the match is explained, not just claimed.",
@@ -262,7 +263,7 @@ const PLACES=[
 const P=Object.fromEntries(PLACES.map(p=>[p.id,p]));
 function mapHTML(places,{dim=[],sel=null,labels=false,h=230}={}){
   const pins=places.map(p=>`<button class="pin ${dim.includes(p.id)?"dim":""} ${sel===p.id?"sel":""}" data-pin="${p.id}" style="left:${p.x}%;top:${p.y}%" aria-label="${esc(p.name)}"><span></span>${labels&&!dim.includes(p.id)?`<span class="lbl">${esc(p.name)}</span>`:""}</button>`).join("");
-  return `<div class="map" style="height:${h}px"><svg class="base" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+  return `<div class="map" style="height:${typeof h==="number"?h+"px":h}"><svg class="base" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
     <rect width="100" height="100" fill="var(--map-land)"/>
     <path d="M92 0 C 86 30, 98 60, 90 100 L100 100 L100 0Z" fill="var(--map-water)"/>
     <rect x="40" y="76" width="22" height="16" rx="2" fill="var(--map-park)"/>
@@ -283,7 +284,7 @@ function parse(q){q=q.toLowerCase();const words=q.split(/[^a-z\-]+/);const tags=
 function setWhy(k){const [t,items]=WHY[k];$("#whyTitle").textContent=t;$("#whyList").innerHTML=items.map(i=>"<li>"+i+"</li>").join("")}
 function go(screen){st.screen=screen;render()}
 function render(){({entry:renderEntry,results:renderResults,detail:renderDetail,evidence:renderEvidence,route:renderRoute})[st.screen]();setWhy(st.screen);view.scrollTop=0}
-function search(q,how){const r=parse(q);st.q=q;st.tags=r.tags;st.near=r.near;logEvent(how+": \""+q+"\"");go("results")}
+function search(q,how){const r=parse(q);st.sheet="peek";st.moreAdd=false;st.q=q;st.tags=r.tags;st.near=r.near;logEvent(how+": \""+q+"\"");go("results")}
 
 /* 1. Entry: type, speak or tap */
 function renderEntry(){
@@ -315,16 +316,18 @@ function renderResults(){
       ${tags.map(t=>`<span class="pill">${TAGS[t].label}<button data-rm="${t}" aria-label="Remove ${TAGS[t].label}">×</button></span>`).join("")}
       ${st.near?`<span class="pill">Within 1 mi<button data-rm="near" aria-label="Remove distance limit">×</button></span>`:""}
       ${!tags.length?`<span class="meta">No qualities recognized yet. Add one below.</span>`:""}</div>
-    <div class="addrow"><span class="meta" style="flex:none">Add:</span>${extra.map(t=>`<button class="chip add" data-add="${t}">+ ${TAGS[t].label}</button>`).join("")}</div>
-    ${mapHTML(PLACES,{dim:PLACES.filter(p=>!list.slice(0,5).some(r=>r.p.id===p.id)).map(p=>p.id),h:130})}
-    <div class="scroll">${list.map((r,i)=>{const p=r.p,miss=tags.filter(t=>!p.tags.includes(t)),first=r.m.find(t=>t==="books")||r.m[0];
+    <div class="addrow ${st.moreAdd?"open":""}"><span class="meta" style="flex:none">Add:</span>${(st.moreAdd?extra:extra.slice(0,2)).map(t=>`<button class="chip add" data-add="${t}">+ ${TAGS[t].label}</button>`).join("")}${extra.length>2?`<button class="chip more" id="moreadd" aria-expanded="${!!st.moreAdd}">${st.moreAdd?"Less":"More…"}</button>`:""}</div>
+    <div class="mapsheet">${mapHTML(PLACES,{dim:PLACES.filter(p=>!list.slice(0,5).some(r=>r.p.id===p.id)).map(p=>p.id),h:"100%"})}
+    <div class="rsheet ${st.sheet==="full"?"full":""}"><button class="sheethandle" id="sheet" aria-expanded="${st.sheet==="full"}"><span class="grab"></span><span class="cnt">${list.length} place${list.length===1?"":"s"} match · ${st.sheet==="full"?"Show map ▾":"Show list ▴"}</span></button><div class="scroll">${list.map((r,i)=>{const p=r.p,miss=tags.filter(t=>!p.tags.includes(t)),first=r.m.find(t=>t==="books")||r.m[0];
       return `<div class="card"><button class="cardhead" data-open="${p.id}"><h3>${esc(p.name)}</h3>${tags.length?`<span class="score">${r.m.length} of ${tags.length} match</span>`:""}</button>
         <span class="meta">${stars(p.rating)} (${p.n}) · ${p.price} · ${p.dist} mi</span>
         ${first?`<div style="display:grid;grid-template-columns:84px minmax(0,1fr);gap:8px;align-items:start">${photoTile(first)}<div class="quote">“${EVID[first][i%3]}”<div class="meta" style="margin-top:4px">From a real review · ${["Priya K.","Marcus T.","Jen L."][i%3]}</div></div></div>`:""}
         <span class="tags">${r.m.map(t=>`<button class="tag btn" data-ev="${p.id}|${t}" aria-label="See evidence for ${TAGS[t].label}">✓ ${TAGS[t].label} · ${p.c[t]}</button>`).join("")}${miss.map(t=>`<span class="tag miss">No evidence for ${TAGS[t].label.toLowerCase()}</span>`).join("")}</span>
-        <div style="display:flex;gap:8px"><button class="primary" style="padding:7px 14px" data-go="${p.id}">Directions</button></div></div>`}).join("")||`<div class="empty">No places match everything. Remove a quality above.</div>`}</div>`;
+        <div style="display:flex;gap:8px"><button class="primary" style="padding:7px 14px" data-go="${p.id}">Directions</button></div></div>`}).join("")||`<div class="empty">No places match everything. Remove a quality above.</div>`}</div></div></div>`;
   const inp=$("#q2");inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&inp.value.trim())search(inp.value.trim(),"Retyped")});
   $("#home").onclick=()=>{logEvent("Back to new search");st.picked=[];go("entry")};
+  const mb=$("#moreadd");if(mb)mb.onclick=()=>{st.moreAdd=!st.moreAdd;logEvent(st.moreAdd?"Showed more qualities":"Showed fewer qualities");render()};
+  $("#sheet").onclick=()=>{st.sheet=st.sheet==="full"?"peek":"full";logEvent(st.sheet==="full"?"Expanded list":"Collapsed list");const s=view.querySelector(".rsheet");s.classList.toggle("full",st.sheet==="full");$("#sheet").setAttribute("aria-expanded",st.sheet==="full");$("#sheet .cnt").textContent=$("#sheet .cnt").textContent.replace(/·.*/,"· "+(st.sheet==="full"?"Show map ▾":"Show list ▴"))};
   view.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const t=b.dataset.rm;if(t==="near")st.near=false;else st.tags=st.tags.filter(x=>x!==t);logEvent("Removed "+(t==="near"?"distance limit":TAGS[t].label));render()});
   view.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const t=b.dataset.add;st.tags=[...st.tags,t];logEvent("Added "+TAGS[t].label);render()});
   view.querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>{const [id,t]=b.dataset.ev.split("|");st.place=id;st.evTag=t;st.evFrom="results";logEvent("Checked evidence: "+P[id].name+", "+TAGS[t].label);go("evidence")});

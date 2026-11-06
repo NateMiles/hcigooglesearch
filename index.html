@@ -1,0 +1,376 @@
+<title>Vibe Search Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a working bench. Phone on the left is the prototype; the right column is the test facilitator's notes and task log. */
+:root{
+  --bg:#eef1ef; --panel:#ffffff; --ink:#1b2422; --muted:#5b6965; --line:#d5ddd9;
+  --accent:#0f7a68; --accent-ink:#ffffff; --accent-soft:#d6efe9;
+  --map-land:#e8ece6; --map-road:#ffffff; --map-park:#cfe6c8; --map-water:#bcd9ea; --map-block:#dde3dc;
+  --pin:#c2410c; --pin-dim:#9aa6a2; --mark:#fde68a; --mark-ink:#1b2422;
+  --warn:#b45309; --ok:#15803d;
+  --phone-frame:#1b2422; --shadow:0 18px 40px rgba(20,40,35,.16);
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121816; --panel:#1b2321; --ink:#e7eeeb; --muted:#9fb0aa; --line:#2e3a37;
+  --accent:#3cc0a6; --accent-ink:#06201b; --accent-soft:#163a33;
+  --map-land:#1f2826; --map-road:#2f3b38; --map-park:#24402f; --map-water:#1d3646; --map-block:#263230;
+  --pin:#fb923c; --pin-dim:#56635f; --mark:#7c5d12; --mark-ink:#fff7e0;
+  --warn:#f59e0b; --ok:#4ade80; --phone-frame:#000; --shadow:0 18px 40px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121816; --panel:#1b2321; --ink:#e7eeeb; --muted:#9fb0aa; --line:#2e3a37;
+  --accent:#3cc0a6; --accent-ink:#06201b; --accent-soft:#163a33;
+  --map-land:#1f2826; --map-road:#2f3b38; --map-park:#24402f; --map-water:#1d3646; --map-block:#263230;
+  --pin:#fb923c; --pin-dim:#56635f; --mark:#7c5d12; --mark-ink:#fff7e0;
+  --warn:#f59e0b; --ok:#4ade80; --phone-frame:#000; --shadow:0 18px 40px rgba(0,0,0,.5); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:24px 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4vw,36px);line-height:1.1;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 14px;display:flex;gap:8px;align-items:center}
+.tab b{font-family:var(--f-mono);font-size:12px;background:var(--accent-soft);color:var(--ink);border-radius:6px;padding:1px 6px}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tab[aria-selected="true"] b{background:rgba(255,255,255,.25);color:var(--accent-ink)}
+.bench{display:grid;grid-template-columns:auto minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:760px){.bench{grid-template-columns:minmax(0,1fr)}}
+
+/* Phone */
+.phone{width:360px;max-width:100%;height:720px;border-radius:38px;background:var(--phone-frame);padding:10px;box-shadow:var(--shadow);margin:0 auto}
+.screen{position:relative;width:100%;height:100%;border-radius:30px;overflow:hidden;background:var(--panel);display:flex;flex-direction:column}
+.status{height:26px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font-size:11px;font-family:var(--f-mono);color:var(--muted)}
+.view{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+.scroll{flex:1;min-height:0;overflow-y:auto}
+.searchbar{margin:6px 12px 8px;display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:8px 12px}
+.searchbar input{flex:1;min-width:0;border:0;background:transparent;font:inherit;color:var(--ink)}
+.searchbar input:focus{outline:none}
+.searchbar svg{flex:none}
+.iconbtn{border:0;background:transparent;padding:4px;border-radius:999px;display:grid;place-items:center}
+.map{position:relative;height:230px;flex:none;background:var(--map-land);overflow:hidden}
+.map svg.base{position:absolute;inset:0;width:100%;height:100%}
+.pin{position:absolute;transform:translate(-50%,-100%);border:0;background:transparent;padding:0}
+.pin span{display:block;width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pin);border:2px solid var(--panel);box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.pin.dim span{background:var(--pin-dim);width:14px;height:14px}
+.pin.sel span{outline:3px solid var(--accent)}
+.pin .lbl{position:absolute;left:16px;top:-2px;transform:none;white-space:nowrap;font-size:11px;font-weight:700;background:var(--panel);border-radius:6px;padding:1px 5px;box-shadow:0 1px 3px rgba(0,0,0,.2);width:auto;height:auto;border:0}
+.you{position:absolute;width:14px;height:14px;border-radius:50%;background:#2563eb;border:3px solid var(--panel);box-shadow:0 0 0 6px rgba(37,99,235,.2);transform:translate(-50%,-50%)}
+.chiprow{display:flex;gap:6px;overflow-x:auto;padding:2px 12px 8px;scrollbar-width:none;align-items:center}
+.chiprow::-webkit-scrollbar{display:none}
+.rowlbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);flex:none;width:58px}
+.chip{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 11px;font-size:13px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.counter{display:flex;justify-content:space-between;align-items:center;padding:6px 14px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
+.linkbtn{border:0;background:none;color:var(--accent);font-weight:700;padding:2px 4px}
+.card{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;width:100%;background:transparent;border-left:0;border-right:0;border-top:0}
+.card:hover{background:var(--bg)}
+.card h3{margin:0;font-family:var(--f-display);font-size:17px;font-weight:700}
+.meta{font-size:13px;color:var(--muted)}
+.stars{color:#d97706}
+.tags{display:flex;flex-wrap:wrap;gap:5px}
+.tag{font-size:12px;border-radius:6px;padding:2px 7px;background:var(--accent-soft);color:var(--ink)}
+.tag.miss{background:transparent;border:1px dashed var(--line);color:var(--warn)}
+.tag.btn{border:0}
+.score{font-family:var(--f-mono);font-size:12px;color:var(--accent);font-weight:500}
+.empty{padding:24px 16px;color:var(--muted);text-align:center}
+.photo{border-radius:10px;height:84px;display:flex;align-items:flex-end;padding:6px 8px;font-size:11px;color:#fff;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:0 14px}
+.quote{font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px}
+mark{background:var(--mark);color:var(--mark-ink);border-radius:3px;padding:0 2px}
+.detailhead{padding:4px 14px 10px;display:flex;flex-direction:column;gap:4px}
+.detailhead h2{margin:0;font-family:var(--f-display);font-size:22px}
+.back{border:0;background:none;padding:8px 12px;color:var(--accent);font-weight:700;text-align:left}
+.why{margin:10px 14px;border:1px solid var(--accent);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.why h4{margin:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.why li{font-size:13px}
+.why ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.primary{border:0;background:var(--accent);color:var(--accent-ink);font-weight:700;border-radius:999px;padding:11px 18px}
+.secondary{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:10px 16px;font-weight:700}
+.actions{display:flex;gap:8px;padding:10px 14px}
+.pills{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 8px;align-items:center}
+.pill{display:flex;align-items:center;gap:4px;border-radius:999px;background:var(--accent-soft);padding:4px 6px 4px 10px;font-size:13px}
+.pill button{border:0;background:transparent;width:20px;height:20px;border-radius:50%;line-height:1;padding:0}
+.hint{font-size:12px;color:var(--muted);padding:0 14px 6px}
+.suggest{display:flex;flex-direction:column;gap:6px;padding:8px 12px}
+.suggest button{text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:10px 12px;font-size:14px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-radius:18px 18px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.2);padding:14px;display:flex;flex-direction:column;gap:10px;max-height:88%;overflow-y:auto;animation:up .22s ease-out}
+.sheet h3{margin:0;font-family:var(--f-display);font-size:18px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.apps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center;font-size:11px}
+.apps button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px}
+.appicon{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;font-weight:700;color:#fff;font-size:18px}
+textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;resize:none}
+.radio{display:flex;gap:8px;align-items:center;font-size:14px;padding:4px 0}
+.forum{padding:10px 14px;display:flex;flex-direction:column;gap:10px}
+.forum .sub{font-size:12px;color:var(--muted)}
+.forum h2{margin:0;font-family:var(--f-display);font-size:19px}
+.comment{border-left:3px solid var(--line);padding:4px 0 4px 10px;font-size:14px;display:flex;flex-direction:column;gap:4px}
+.comment .who{font-size:12px;color:var(--muted)}
+.sel{background:#93c5fd;color:#0b1b33;border-radius:2px}
+.toolbar{display:flex;gap:4px;background:var(--ink);color:var(--bg);border-radius:8px;padding:4px;width:max-content}
+.toolbar button{border:0;background:transparent;color:var(--bg);padding:4px 10px;font-size:13px}
+.toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:10px;padding:8px 14px;font-size:13px;white-space:nowrap;z-index:5}
+.done{margin:14px;border-radius:12px;background:var(--accent-soft);padding:14px;display:flex;flex-direction:column;gap:6px}
+.done h3{margin:0;font-family:var(--f-display)}
+.route{height:260px}
+
+/* Side panel */
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.box h2{margin:0;font-family:var(--f-display);font-size:19px}
+.box h3{margin:0;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.box p{margin:0;max-width:62ch}
+.box ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.log{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat strong{font-family:var(--f-mono);font-size:26px;font-variant-numeric:tabular-nums;font-weight:500}
+.stat span{font-size:12px;color:var(--muted)}
+.loglist{font-family:var(--f-mono);font-size:12px;color:var(--muted);max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none}
+.note{font-size:12px;color:var(--muted)}
+.sectlbl{margin:4px 12px 2px;font-size:12px;font-weight:700;color:var(--muted)}
+.why button.q{display:inline;border:0;background:none;padding:0;color:inherit;text-align:left;font:inherit}
+.why button.q span{color:var(--accent);font-weight:700}
+.addrow{display:flex;gap:6px;overflow-x:auto;padding:0 12px 8px;scrollbar-width:none;align-items:center}
+.addrow::-webkit-scrollbar{display:none}
+.chip.add{border-style:dashed}
+.rationale{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.rationale li{font-size:14px}
+.rationale b{font-weight:700}
+.cardhead{border:0;background:none;padding:0;text-align:left;display:flex;justify-content:space-between;align-items:baseline;gap:8px;width:100%}
+.cardhead h3{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Vibe Search: Final Prototype</h1>
+    <p>A medium-fidelity redesign of searching Google Maps for a place by its qualities. It combines plain-language search with review evidence (design B) and one-tap vibe and feature chips (design A). The log on the right counts taps and time until the participant starts directions. Places, reviews and photos are made up.</p>
+  </header>
+  <div class="bench">
+    <div class="phone"><div class="screen" id="screen">
+      <div class="status"><span>9:41</span><span>5G ▮▮▮</span></div>
+      <div class="view" id="view"></div>
+    </div></div>
+    <aside class="side">
+      <section class="box">
+        <h3>Task for the participant</h3>
+        <h2>Find a cozy coffee shop with good food and free books</h2>
+        <p>Ask the participant to find a nearby coffee shop that is cozy, has good food and has free books to read. They should check that it really has free books, then start directions. They can type a request, tap the microphone, or tap the chips.</p>
+      </section>
+      <section class="box">
+        <h3>Task log</h3>
+        <div class="log">
+          <div class="stat"><strong id="lgTaps">0</strong><span>Taps</span></div>
+          <div class="stat"><strong id="lgTime">0:00</strong><span>Time</span></div>
+          <div class="stat"><strong id="lgDone">–</strong><span>Finished</span></div>
+        </div>
+        <ul class="loglist" id="lgList" aria-live="polite"></ul>
+        <div><button class="secondary" id="reset">Start over</button></div>
+        <p class="note">The clock starts on the first tap inside the phone and stops when the participant taps Directions.</p>
+      </section>
+      <section class="box">
+        <h3>Why this screen looks like this</h3>
+        <h2 id="whyTitle"></h2>
+        <ul class="rationale" id="whyList"></ul>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+
+const WHY={
+  entry:["Describe it, or tap it",[
+    "<b>Match with the real world:</b> the search bar invites a full request, the way people describe a place to a friend. Survey respondents searched Google, Reddit and ChatGPT for this because Maps doesn't take that kind of request.",
+    "<b>Flexibility and efficiency:</b> typing suits a detailed request, the mic suits walking, and the chips suit quick browsing. All three lead to the same results.",
+    "<b>Recognition rather than recall:</b> the labeled chip rows show which qualities Maps understands, so nobody has to guess keywords."]],
+  results:["See what Maps understood",[
+    "<b>Visibility of system status:</b> the \"Understood as\" pills show exactly how Maps read the request, which narrows the gulf of evaluation before the user trusts a result.",
+    "<b>Error recovery:</b> a misread costs one tap on ×, not retyping the whole request. Dashed chips add a quality the same way.",
+    "<b>Evidence up front:</b> each result shows how many qualities it matches and a quote from a real, named review. In first-round testing, 4 of 8 participants tapped Reviews instead of Directions on design A, and one said they skip AI summaries."]],
+  detail:["Why it matched",[
+    "<b>Feedback:</b> the \"Matched because\" box ties each quality to a count of reviews, so the match is explained, not just claimed.",
+    "<b>Progressive disclosure:</b> the full evidence is one tap away, keeping this screen short.",
+    "<b>Consistency:</b> the place page keeps the standard Maps layout (photos, rating, Directions), so nothing new has to be learned."]],
+  evidence:["Proof for one quality",[
+    "<b>Trust:</b> photos and quotes with only the matching phrase highlighted let people check a claim at a glance.",
+    "<b>Needfinding link:</b> 17 of 25 survey respondents spent 5 minutes or more checking features by reading reviews. This screen does that digging for them."]],
+  route:["Task finished",["Directions ends the task. The log shows how many taps and how long it took, which feeds the final evaluation."]]
+};
+
+const $=s=>document.querySelector(s);
+const view=$("#view"), screenEl=$("#screen");
+let st={}, log={taps:0,start:null,done:null,items:[]}, timer=null;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=ms=>{const s=Math.round(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+
+function logEvent(t){if(log.done)return; if(!log.start){log.start=Date.now();timer=setInterval(drawLog,500)}
+  log.items.push(fmt(Date.now()-log.start)+"  "+t); drawLog();}
+function drawLog(){$("#lgTaps").textContent=log.taps;$("#lgTime").textContent=log.start?fmt((log.done||Date.now())-log.start):"0:00";
+  $("#lgDone").textContent=log.done?"Yes":"–";
+  $("#lgList").innerHTML=log.items.slice(-40).map(i=>"<li>"+esc(i)+"</li>").join("");const l=$("#lgList");l.scrollTop=l.scrollHeight}
+function resetLog(){clearInterval(timer);timer=null;log={taps:0,start:null,done:null,items:[]};drawLog()}
+screenEl.addEventListener("click",e=>{if(e.target.closest("button,.pin")&&!log.done){log.taps++;if(!log.start){log.start=Date.now();timer=setInterval(drawLog,500)}drawLog()}},true);
+function finish(p){logEvent("Directions to "+p.name);log.done=Date.now();clearInterval(timer);drawLog()}
+
+function toast(msg){const t=document.createElement("div");t.className="toast";t.textContent=msg;view.appendChild(t);setTimeout(()=>t.remove(),1800)}
+function stars(r){return '<span class="stars">★</span> '+r.toFixed(1)}
+function photoTile(tag){const [a,b,l]=PHOTO[tag];return `<div class="photo" style="background:linear-gradient(135deg,${a},${b})">${esc(l)}</div>`}
+const TAGS={
+  cozy:{label:"Cozy",kind:"vibe",words:["cozy","cosy","warm","snug","comfy"]},
+  lively:{label:"Lively",kind:"vibe",words:["lively","upbeat","buzzy","fun","energetic"]},
+  quiet:{label:"Quiet",kind:"vibe",words:["quiet","calm","peaceful","study"]},
+  laptop:{label:"Laptop-friendly",kind:"vibe",words:["laptop","work","wifi","wi-fi","outlets"]},
+  trendy:{label:"Trendy",kind:"vibe",words:["trendy","aesthetic","cute","instagram"]},
+  books:{label:"Free books",kind:"feat",words:["book","books","reading","library","swap"]},
+  food:{label:"Good food",kind:"feat",words:["food","eat","sandwich","sandwiches","brunch","pastries","pastry","lunch"]},
+  outdoor:{label:"Outdoor seating",kind:"feat",words:["outdoor","patio","outside","terrace","garden"]},
+  late:{label:"Open late",kind:"feat",words:["late","night","evening"]}
+};
+const EVID={
+  cozy:["Mismatched armchairs and warm lamps, <mark>so cozy</mark> on a rainy day.","Small, warm and <mark>really cozy</mark>. I stayed three hours.","Exposed brick and candles, a <mark>cozy little spot</mark>."],
+  lively:["Great music and a <mark>lively crowd</mark> on weekends.","Always <mark>buzzing</mark>, good energy for meeting friends.","<mark>Upbeat vibe</mark>, a bit loud but fun."],
+  quiet:["<mark>Super quiet</mark>, perfect for reading.","Calm and <mark>peaceful</mark> even at noon.","People mostly whisper here, <mark>very quiet</mark>."],
+  laptop:["Plenty of <mark>outlets and fast wifi</mark>.","Lots of people <mark>working on laptops</mark>, nobody rushes you.","Big tables, <mark>good for getting work done</mark>."],
+  trendy:["<mark>Gorgeous interior</mark>, every corner is photo-worthy.","Very <mark>aesthetic</mark>, pastel everything.","The <mark>trendiest cafe</mark> in the neighborhood right now."],
+  books:["A whole <mark>wall of free books</mark> you can borrow or swap.","They have a <mark>take-a-book, leave-a-book shelf</mark>.","Grabbed a <mark>free paperback</mark> from their shelf."],
+  food:["The egg sandwich is <mark>better than most brunch places</mark>.","<mark>Great food</mark>, the avocado toast is huge.","<mark>Pastries are baked in house</mark> and excellent."],
+  outdoor:["Lovely <mark>back patio</mark> with string lights.","Grabbed a <mark>sidewalk table outside</mark>.","The <mark>garden seating</mark> is the best part."],
+  late:["<mark>Open until midnight</mark>, rare for a cafe.","Came by at 10pm and it was <mark>still open</mark>.","Great <mark>late-night</mark> spot after dinner."]
+};
+const PHOTO={cozy:["#8a5a3c","#c08457","armchairs, warm lamps"],lively:["#7c3aed","#db2777","crowded counter"],quiet:["#4b6b63","#9cb7ad","empty reading nook"],laptop:["#334155","#64748b","long work table"],trendy:["#db2777","#f9a8d4","pastel interior"],books:["#7c4a1e","#d6a15b","bookshelf wall"],food:["#b45309","#fbbf24","egg sandwich"],outdoor:["#15803d","#86efac","back patio"],late:["#1e1b4b","#6366f1","lit at night"]};
+const PLACES=[
+  {id:"hearth",name:"Hearth & Bean",addr:"212 E 7th St",dist:0.4,rating:4.7,n:812,price:"$$",x:62,y:38,tags:["cozy","lively","books","food","late"],c:{cozy:41,lively:18,books:23,food:30,late:9}},
+  {id:"paperback",name:"Paperback Cafe",addr:"88 Avenue B",dist:0.7,rating:4.6,n:534,price:"$",x:80,y:58,tags:["cozy","quiet","books","food"],c:{cozy:36,quiet:22,books:31,food:14}},
+  {id:"third",name:"Third Shelf Coffee",addr:"41 St Marks Pl",dist:0.3,rating:4.4,n:290,price:"$",x:44,y:30,tags:["quiet","laptop","books"],c:{quiet:19,laptop:27,books:12}},
+  {id:"margin",name:"Margin Notes",addr:"157 2nd Ave",dist:0.5,rating:4.3,n:198,price:"$$",x:36,y:56,tags:["cozy","laptop","books"],c:{cozy:15,laptop:21,books:17}},
+  {id:"copper",name:"Copper Kettle",addr:"19 E 3rd St",dist:0.6,rating:4.5,n:640,price:"$$",x:24,y:72,tags:["cozy","food","outdoor"],c:{cozy:28,food:44,outdoor:19}},
+  {id:"loudleaf",name:"Loud Leaf",addr:"301 E 10th St",dist:0.8,rating:4.2,n:410,price:"$$",x:70,y:18,tags:["lively","trendy","food","late"],c:{lively:33,trendy:25,food:16,late:20}},
+  {id:"dovetail",name:"Dovetail Espresso",addr:"65 1st Ave",dist:0.2,rating:4.4,n:356,price:"$$",x:52,y:62,tags:["trendy","laptop","outdoor"],c:{trendy:29,laptop:14,outdoor:11}},
+  {id:"fern",name:"Fern Room",addr:"120 E 4th St",dist:0.9,rating:4.6,n:722,price:"$$$",x:16,y:44,tags:["cozy","trendy","food"],c:{cozy:22,trendy:38,food:27}},
+  {id:"sunday",name:"Sunday Roast Co.",addr:"9 Avenue A",dist:1.1,rating:4.1,n:502,price:"$$",x:88,y:80,tags:["lively","food","outdoor"],c:{lively:21,food:35,outdoor:26}},
+  {id:"nightowl",name:"Night Owl Coffee",addr:"233 E 13th St",dist:1.0,rating:4.0,n:267,price:"$",x:30,y:14,tags:["lively","laptop","late","food"],c:{lively:12,laptop:18,late:31,food:8}}
+];
+const P=Object.fromEntries(PLACES.map(p=>[p.id,p]));
+function mapHTML(places,{dim=[],sel=null,labels=false,h=230}={}){
+  const pins=places.map(p=>`<button class="pin ${dim.includes(p.id)?"dim":""} ${sel===p.id?"sel":""}" data-pin="${p.id}" style="left:${p.x}%;top:${p.y}%" aria-label="${esc(p.name)}"><span></span>${labels&&!dim.includes(p.id)?`<span class="lbl">${esc(p.name)}</span>`:""}</button>`).join("");
+  return `<div class="map" style="height:${h}px"><svg class="base" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    <rect width="100" height="100" fill="var(--map-land)"/>
+    <path d="M92 0 C 86 30, 98 60, 90 100 L100 100 L100 0Z" fill="var(--map-water)"/>
+    <rect x="40" y="76" width="22" height="16" rx="2" fill="var(--map-park)"/>
+    ${[12,28,44,60,76].map(y=>`<rect x="0" y="${y}" width="100" height="2.2" fill="var(--map-road)"/>`).join("")}
+    ${[10,26,42,58,74].map(x=>`<rect x="${x}" y="0" width="2.6" height="100" fill="var(--map-road)"/>`).join("")}
+    <path d="M0 96 L70 0" stroke="var(--map-road)" stroke-width="2.4"/>
+  </svg><div class="you" style="left:48%;top:46%"></div>${pins}</div>`}
+
+
+const SEARCH_ICON=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`;
+const MIC_ICON=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>`;
+const EXAMPLE="cozy coffee shop near me with good food and free books";
+const VIBES=["cozy","lively","quiet","laptop","trendy"], FEATS=["books","food","outdoor","late"];
+
+function parse(q){q=q.toLowerCase();const words=q.split(/[^a-z\-]+/);const tags=[];
+  for(const [k,v] of Object.entries(TAGS)) if(v.words.some(w=>words.includes(w))) tags.push(k);
+  return {tags,near:/near me|nearby|close|walking/.test(q)}}
+function setWhy(k){const [t,items]=WHY[k];$("#whyTitle").textContent=t;$("#whyList").innerHTML=items.map(i=>"<li>"+i+"</li>").join("")}
+function go(screen){st.screen=screen;render()}
+function render(){({entry:renderEntry,results:renderResults,detail:renderDetail,evidence:renderEvidence,route:renderRoute})[st.screen]();setWhy(st.screen);view.scrollTop=0}
+function search(q,how){const r=parse(q);st.q=q;st.tags=r.tags;st.near=r.near;logEvent(how+": \""+q+"\"");go("results")}
+
+/* 1. Entry: type, speak or tap */
+function renderEntry(){
+  const chip=t=>`<button class="chip" aria-pressed="${st.picked.includes(t)}" data-chip="${t}">${TAGS[t].label}</button>`;
+  view.innerHTML=`<div class="searchbar">${SEARCH_ICON}
+      <input id="q" placeholder="Describe what you're looking for" aria-label="Describe what you're looking for" value="${esc(st.q||"")}">
+      <button class="iconbtn" id="mic" aria-label="Speak your request">${MIC_ICON}</button></div>
+    <p class="hint">Describe it like you would to a friend, or tap qualities below.</p>
+    <p class="sectlbl">Vibe: how it feels</p><div class="chiprow">${VIBES.map(chip).join("")}</div>
+    <p class="sectlbl">Features: what it has</p><div class="chiprow">${FEATS.map(chip).join("")}</div>
+    ${st.picked.length?`<div class="actions" style="padding-top:0"><button class="primary" id="chipgo" style="width:100%">Find coffee shops: ${st.picked.map(t=>TAGS[t].label).join(", ")}</button></div>`:""}
+    ${mapHTML(PLACES,{dim:PLACES.map(p=>p.id),h:st.picked.length?260:300})}`;
+  const inp=$("#q");
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&inp.value.trim())search(inp.value.trim(),"Typed")});
+  $("#mic").onclick=()=>{logEvent("Tapped microphone");inp.value="";inp.placeholder="Listening…";let i=0;
+    const iv=setInterval(()=>{inp.value=EXAMPLE.slice(0,i+=3);if(i>=EXAMPLE.length){clearInterval(iv);setTimeout(()=>search(EXAMPLE,"Spoke"),350)}},40)};
+  view.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>{const t=b.dataset.chip;st.picked=st.picked.includes(t)?st.picked.filter(x=>x!==t):[...st.picked,t];logEvent((st.picked.includes(t)?"Chip on: ":"Chip off: ")+TAGS[t].label);render()});
+  const cg=$("#chipgo");if(cg)cg.onclick=()=>{st.q="coffee shop";st.tags=[...st.picked];st.near=true;logEvent("Searched with chips: "+st.tags.map(t=>TAGS[t].label).join(", "));go("results")};
+}
+
+/* 2. Results: understood-as pills, add-a-quality chips, evidence cards */
+function ranked(){const tags=st.tags,maxD=st.near?1:5;
+  return PLACES.filter(p=>p.dist<=maxD).map(p=>({p,m:tags.filter(t=>p.tags.includes(t))}))
+    .filter(r=>!tags.length||r.m.length).sort((a,b)=>b.m.length-a.m.length||a.p.dist-b.p.dist)}
+function renderResults(){
+  const tags=st.tags, list=ranked(), extra=[...VIBES,...FEATS].filter(t=>!tags.includes(t));
+  view.innerHTML=`<div class="searchbar"><button class="iconbtn" id="home" aria-label="New search">‹</button><input id="q2" value="${esc(st.q)}" aria-label="Your request"></div>
+    <div class="pills"><span class="meta">Understood as:</span><span class="pill" style="padding-right:10px">Coffee shop</span>
+      ${tags.map(t=>`<span class="pill">${TAGS[t].label}<button data-rm="${t}" aria-label="Remove ${TAGS[t].label}">×</button></span>`).join("")}
+      ${st.near?`<span class="pill">Within 1 mi<button data-rm="near" aria-label="Remove distance limit">×</button></span>`:""}
+      ${!tags.length?`<span class="meta">No qualities recognized yet. Add one below.</span>`:""}</div>
+    <div class="addrow"><span class="meta" style="flex:none">Add:</span>${extra.map(t=>`<button class="chip add" data-add="${t}">+ ${TAGS[t].label}</button>`).join("")}</div>
+    ${mapHTML(PLACES,{dim:PLACES.filter(p=>!list.slice(0,5).some(r=>r.p.id===p.id)).map(p=>p.id),h:130})}
+    <div class="scroll">${list.map((r,i)=>{const p=r.p,miss=tags.filter(t=>!p.tags.includes(t)),first=r.m.find(t=>t==="books")||r.m[0];
+      return `<div class="card"><button class="cardhead" data-open="${p.id}"><h3>${esc(p.name)}</h3>${tags.length?`<span class="score">${r.m.length} of ${tags.length} match</span>`:""}</button>
+        <span class="meta">${stars(p.rating)} (${p.n}) · ${p.price} · ${p.dist} mi</span>
+        ${first?`<div style="display:grid;grid-template-columns:84px minmax(0,1fr);gap:8px;align-items:start">${photoTile(first)}<div class="quote">“${EVID[first][i%3]}”<div class="meta" style="margin-top:4px">From a real review · ${["Priya K.","Marcus T.","Jen L."][i%3]}</div></div></div>`:""}
+        <span class="tags">${r.m.map(t=>`<button class="tag btn" data-ev="${p.id}|${t}" aria-label="See evidence for ${TAGS[t].label}">✓ ${TAGS[t].label} · ${p.c[t]}</button>`).join("")}${miss.map(t=>`<span class="tag miss">No evidence for ${TAGS[t].label.toLowerCase()}</span>`).join("")}</span>
+        <div style="display:flex;gap:8px"><button class="primary" style="padding:7px 14px" data-go="${p.id}">Directions</button></div></div>`}).join("")||`<div class="empty">No places match everything. Remove a quality above.</div>`}</div>`;
+  const inp=$("#q2");inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&inp.value.trim())search(inp.value.trim(),"Retyped")});
+  $("#home").onclick=()=>{logEvent("Back to new search");st.picked=[];go("entry")};
+  view.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const t=b.dataset.rm;if(t==="near")st.near=false;else st.tags=st.tags.filter(x=>x!==t);logEvent("Removed "+(t==="near"?"distance limit":TAGS[t].label));render()});
+  view.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const t=b.dataset.add;st.tags=[...st.tags,t];logEvent("Added "+TAGS[t].label);render()});
+  view.querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>{const [id,t]=b.dataset.ev.split("|");st.place=id;st.evTag=t;st.evFrom="results";logEvent("Checked evidence: "+P[id].name+", "+TAGS[t].label);go("evidence")});
+  view.querySelectorAll("[data-open],[data-pin]").forEach(b=>b.onclick=()=>{st.place=b.dataset.open||b.dataset.pin;logEvent("Opened "+P[st.place].name);go("detail")});
+  view.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const p=P[b.dataset.go];st.place=p.id;finish(p);go("route")});
+}
+
+/* 3. Place page */
+function renderDetail(){
+  const p=P[st.place], matched=st.tags.filter(t=>p.tags.includes(t)), miss=st.tags.filter(t=>!p.tags.includes(t));
+  view.innerHTML=`<button class="back" id="back">‹ Results</button><div class="scroll">
+    <div class="photos">${p.tags.slice(0,3).map(photoTile).join("")}</div>
+    <div class="detailhead"><h2>${esc(p.name)}</h2><span class="meta">${stars(p.rating)} (${p.n}) · ${p.price} · Coffee shop · ${p.dist} mi</span><span class="meta">${esc(p.addr)} · Open until ${p.tags.includes("late")?"12 AM":"7 PM"}</span></div>
+    ${st.tags.length?`<div class="why"><h4>Matched because</h4><ul>${matched.map(t=>`<li><strong>${TAGS[t].label}:</strong> ${p.c[t]} reviews mention it <button class="q" data-ev="${t}" aria-label="See proof for ${TAGS[t].label}"><span style="white-space:nowrap">See proof ›</span></button></li>`).join("")}${miss.map(t=>`<li style="color:var(--warn)">No reviews mention ${TAGS[t].label.toLowerCase()}</li>`).join("")}</ul></div>`:""}
+    <div class="actions"><button class="primary" id="go">Directions</button><button class="secondary" id="savebtn">Save</button></div>
+    <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:8px"><strong>Reviews</strong>${p.tags.slice(0,3).map(t=>`<div class="quote">${EVID[t][PLACES.indexOf(p)%3]}</div>`).join("")}</div>
+  </div>`;
+  $("#back").onclick=()=>{logEvent("Back to results");go("results")};
+  $("#savebtn").onclick=()=>toast("Saved to Want to try");
+  view.querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>{st.evTag=b.dataset.ev;st.evFrom="detail";logEvent("Checked evidence: "+p.name+", "+TAGS[st.evTag].label);go("evidence")});
+  $("#go").onclick=()=>{finish(p);go("route")};
+}
+
+/* 4. Evidence */
+function renderEvidence(){
+  const p=P[st.place],t=st.evTag,[a,b,l]=PHOTO[t];
+  view.innerHTML=`<button class="back" id="back">‹ ${st.evFrom==="detail"?esc(p.name):"Results"}</button><div class="scroll">
+    <div class="detailhead"><h2>${esc(p.name)}</h2><span class="meta">Evidence for <strong>${TAGS[t].label}</strong> · ${p.c[t]} of ${p.n} reviews</span></div>
+    <div class="photos">${[0,1,2].map(i=>`<div class="photo" style="background:linear-gradient(${135+i*40}deg,${a},${b})">${i?"customer photo":esc(l)}</div>`).join("")}</div>
+    <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">${EVID[t].map((q,i)=>`<div class="quote">“${q}”<div class="meta" style="margin-top:4px">${["Priya K.","Marcus T.","Jen L."][i]} · ${["2 weeks","1 month","3 months"][i]} ago</div></div>`).join("")}</div>
+    <div class="actions"><button class="primary" id="go">Directions</button></div></div>`;
+  $("#back").onclick=()=>{logEvent("Back");go(st.evFrom)};
+  $("#go").onclick=()=>{finish(p);go("route")};
+}
+
+/* 5. Route */
+function renderRoute(){
+  const p=P[st.place];
+  view.innerHTML=`${mapHTML([p],{sel:p.id,labels:true,h:300})}
+   <div class="done"><h3>Route to ${esc(p.name)}</h3><span class="meta">${Math.max(2,Math.round(p.dist*20))} min walk · ${p.dist} mi</span>
+   <span>Task finished. The log on the right shows taps and time.</span></div>
+   <div class="actions"><button class="secondary" id="again">Run the task again</button></div>`;
+  $("#again").onclick=start;
+}
+
+function start(){resetLog();st={screen:"entry",q:"",tags:[],near:false,picked:[]};render()}
+$("#reset").onclick=start;
+start();
+</script>

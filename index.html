@@ -159,6 +159,10 @@ body:not(.demo) .dmode{display:none!important}body.demo .pmode{display:none!impo
 </style>
 
 <div class="wrap">
+  <header class="pmode">
+    <h1>Vibe Search prototype</h1>
+    <p>A redesign of searching Google Maps for a place by its vibe and features. Do the task on the right using the phone, then copy your results into the survey. Places and reviews are made up.</p>
+  </header>
   <header class="dmode">
     <h1>Vibe Search: Final Prototype</h1>
     <p>A medium-fidelity redesign of searching Google Maps for a place by its qualities. It combines plain-language search with review evidence (design B) and one-tap vibe and feature chips (design A). The log on the right counts taps and time until the participant starts directions. Places, reviews and photos are made up.</p>
@@ -169,21 +173,26 @@ body:not(.demo) .dmode{display:none!important}body.demo .pmode{display:none!impo
       <div class="view" id="view"></div>
     </div></div>
     <aside class="side">
+      <section class="box pmode">
+        <h3>Your task</h3>
+        <h2>Find a cozy coffee shop with good food and free books</h2>
+        <p>Use the phone to find a nearby coffee shop that is cozy, has good food and has free books. Check that it really has free books, then start directions to it. Type, tap the microphone or tap the chips: whatever feels natural.</p>
+      </section>
       <section class="box dmode">
         <h3>Task for the participant</h3>
         <h2>Find a cozy coffee shop with good food and free books</h2>
         <p>Ask the participant to find a nearby coffee shop that is cozy, has good food and has free books to read. They should check that it really has free books, then start directions. They can type a request, tap the microphone, or tap the chips.</p>
       </section>
       <section class="box">
-        <h3 class="dmode">Task log</h3>
-        <div class="log dmode">
+        <h3>Task log</h3>
+        <div class="log">
           <div class="stat"><strong id="lgTaps">0</strong><span>Taps</span></div>
           <div class="stat"><strong id="lgTime">0:00</strong><span>Time</span></div>
           <div class="stat"><strong id="lgDone">–</strong><span>Finished</span></div>
         </div>
         <ul class="loglist dmode" id="lgList" aria-live="polite"></ul>
         <p class="pmode donemsg" id="doneMsg" hidden>Done! Copy your results and paste them into the survey.</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary pmode" id="copyRes">Copy results for the survey</button><button class="secondary dmode" id="reset">Start over</button></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary pmode" id="copyRes">Copy results for the survey</button><button class="secondary" id="reset">Start over</button></div>
         <textarea class="pmode" id="resText" readonly hidden aria-label="Your results" style="width:100%;min-height:90px;font:12px var(--f-mono,monospace)"></textarea>
         <p class="note dmode">The clock starts on the first tap inside the phone and stops when the participant taps Directions.</p>
       </section>
@@ -397,7 +406,7 @@ function renderRoute(){
   const p=P[st.place];
   view.innerHTML=`${mapHTML([p],{sel:p.id,labels:true,h:300})}
    <div class="done"><h3>Route to ${esc(p.name)}</h3><span class="meta">${Math.max(2,Math.round(p.dist*20))} min walk · ${p.dist} mi</span>
-   <span>Task finished. Now click "Copy results for the survey" and paste them into the survey.</span></div>
+   <span>Task finished. Now copy your results from the Task log and paste them into the survey.</span></div>
    <div class="actions"><button class="secondary" id="again">Run the task again</button></div>`;
   $("#again").onclick=start;
 }
